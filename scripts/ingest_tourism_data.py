@@ -30,7 +30,7 @@ def create_directories():
     print(f"Created directories: {RAW_DATA_DIR}, {PROCESSED_DATA_DIR}")
 
 
-def get_yearly_report_pages(url: str) -> List[str]:
+def get_yearly_report_pages(url: str, retries: int = 3) -> List[str]:
     """
     Scrape the main page to find all yearly report page links.
     
@@ -38,36 +38,67 @@ def get_yearly_report_pages(url: str) -> List[str]:
     ----------
     url : str
         The main URL of the monthly tourist arrivals reports page
+    retries : int
+        Number of retry attempts
         
     Returns
     -------
     List[str]
         List of URLs to yearly report pages
     """
+    import time
+    
     print(f"Fetching main page: {url}")
-    try:
-        response = requests.get(url, timeout=30)
-        response.raise_for_status()
-        soup = BeautifulSoup(response.content, 'html.parser')
-        
-        # Find all links that contain yearly report pages
-        yearly_links = []
-        for link in soup.find_all('a', href=True):
-            href = link['href']
-            # Look for links containing 'monthly-tourist-arrivals-reports' followed by a year
-            if 'monthly-tourist-arrivals-reports' in href and re.search(r'20\d{2}', href):
-                full_url = href if href.startswith('http') else f"{BASE_URL}{href}"
-                if full_url not in yearly_links:
-                    yearly_links.append(full_url)
-        
-        print(f"Found {len(yearly_links)} yearly report pages")
-        return yearly_links
-    except Exception as e:
-        print(f"Error fetching main page: {e}")
-        return []
+    
+    for attempt in range(retries):
+        try:
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+            response = requests.get(url, timeout=30, headers=headers)
+            response.raise_for_status()
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            # Find all links that contain yearly report pages
+            yearly_links = []
+            for link in soup.find_all('a', href=True):
+                href = link['href']
+                # Look for links containing 'monthly-tourist-arrivals-reports' followed by a year
+                if 'monthly-tourist-arrivals-reports' in href and re.search(r'20\d{2}', href):
+                    full_url = href if href.startswith('http') else f"{BASE_URL}{href}"
+                    if full_url not in yearly_links:
+                        yearly_links.append(full_url)
+            
+            print(f"Found {len(yearly_links)} yearly report pages")
+            return yearly_links
+        except Exception as e:
+            if attempt < retries - 1:
+                wait_time = (attempt + 1) * 2
+                print(f"Error fetching main page (attempt {attempt + 1}/{retries}): {e}")
+                print(f"Retrying in {wait_time} seconds...")
+                time.sleep(wait_time)
+            else:
+                print(f"Failed to fetch main page after {retries} attempts: {e}")
+                print("\n" + "="*70)
+                print("WEBSITE ACCESS ISSUE DETECTED")
+                print("="*70)
+                print("The SLTDA website appears to be unreachable from this environment.")
+                print("This could be due to:")
+                print("  1. Network restrictions or firewall blocking")
+                print("  2. Website temporarily down")
+                print("  3. DNS resolution issues")
+                print("\nSuggested solutions:")
+                print("  1. Manually download PDF files from:")
+                print("     https://www.sltda.gov.lk/en/monthly-tourist-arrivals-reports")
+                print("  2. Place the PDF files in: data/raw/")
+                print("  3. Re-run this script - it will skip download and process existing PDFs")
+                print("="*70 + "\n")
+                return []
+    
+    return []
 
 
-def get_pdf_links_from_page(url: str) -> List[str]:
+def get_pdf_links_from_page(url: str, retries: int = 3) -> List[str]:
     """
     Get all PDF links from a yearly report page.
     
@@ -75,35 +106,52 @@ def get_pdf_links_from_page(url: str) -> List[str]:
     ----------
     url : str
         URL of the yearly report page
+    retries : int
+        Number of retry attempts
         
     Returns
     -------
     List[str]
         List of PDF URLs
     """
+    import time
+    
     print(f"Fetching PDF links from: {url}")
-    try:
-        response = requests.get(url, timeout=30)
-        response.raise_for_status()
-        soup = BeautifulSoup(response.content, 'html.parser')
-        
-        pdf_links = []
-        for link in soup.find_all('a', href=True):
-            href = link['href']
-            if href.lower().endswith('.pdf'):
-                full_url = href if href.startswith('http') else f"{BASE_URL}{href}"
-                pdf_links.append(full_url)
-        
-        print(f"Found {len(pdf_links)} PDF files on this page")
-        return pdf_links
-    except Exception as e:
-        print(f"Error fetching PDF links from {url}: {e}")
-        return []
+    
+    for attempt in range(retries):
+        try:
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+            response = requests.get(url, timeout=30, headers=headers)
+            response.raise_for_status()
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            pdf_links = []
+            for link in soup.find_all('a', href=True):
+                href = link['href']
+                if href.lower().endswith('.pdf'):
+                    full_url = href if href.startswith('http') else f"{BASE_URL}{href}"
+                    pdf_links.append(full_url)
+            
+            print(f"Found {len(pdf_links)} PDF files on this page")
+            return pdf_links
+        except Exception as e:
+            if attempt < retries - 1:
+                wait_time = (attempt + 1) * 2
+                print(f"Error fetching PDF links (attempt {attempt + 1}/{retries}): {e}")
+                print(f"Retrying in {wait_time} seconds...")
+                time.sleep(wait_time)
+            else:
+                print(f"Failed to fetch PDF links after {retries} attempts: {e}")
+                return []
+    
+    return []
 
 
-def download_pdf(url: str, output_path: str) -> bool:
+def download_pdf(url: str, output_path: str, retries: int = 3) -> bool:
     """
-    Download a PDF file from a URL.
+    Download a PDF file from a URL with retry logic.
     
     Parameters
     ----------
@@ -111,23 +159,39 @@ def download_pdf(url: str, output_path: str) -> bool:
         URL of the PDF file
     output_path : str
         Path to save the downloaded PDF
+    retries : int
+        Number of retry attempts
         
     Returns
     -------
     bool
         True if download was successful, False otherwise
     """
-    try:
-        response = requests.get(url, timeout=60)
-        response.raise_for_status()
-        
-        with open(output_path, 'wb') as f:
-            f.write(response.content)
-        
-        return True
-    except Exception as e:
-        print(f"Error downloading {url}: {e}")
-        return False
+    import time
+    
+    for attempt in range(retries):
+        try:
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+            response = requests.get(url, timeout=60, headers=headers)
+            response.raise_for_status()
+            
+            with open(output_path, 'wb') as f:
+                f.write(response.content)
+            
+            return True
+        except Exception as e:
+            if attempt < retries - 1:
+                wait_time = (attempt + 1) * 2  # Exponential backoff
+                print(f"Error downloading {url} (attempt {attempt + 1}/{retries}): {e}")
+                print(f"Retrying in {wait_time} seconds...")
+                time.sleep(wait_time)
+            else:
+                print(f"Failed to download {url} after {retries} attempts: {e}")
+                return False
+    
+    return False
 
 
 def download_all_pdfs():
@@ -135,6 +199,12 @@ def download_all_pdfs():
     Phase 1: Scrape and download all PDF reports.
     """
     print("\n=== Phase 1: Scraping and Downloading PDF Reports ===\n")
+    
+    # Check if PDFs already exist
+    existing_pdfs = [f for f in os.listdir(RAW_DATA_DIR) if f.endswith('.pdf')]
+    if existing_pdfs:
+        print(f"Found {len(existing_pdfs)} existing PDF files in {RAW_DATA_DIR}")
+        print("These will be processed. To re-download, delete them first.\n")
     
     # Get yearly report pages
     yearly_pages = get_yearly_report_pages(TARGET_URL)
@@ -150,24 +220,53 @@ def download_all_pdfs():
     
     # Remove duplicates
     all_pdf_links = list(set(all_pdf_links))
-    print(f"\nTotal unique PDF files found: {len(all_pdf_links)}")
     
-    # Download each PDF
-    print("\nDownloading PDF files...")
-    downloaded_count = 0
-    for idx, pdf_url in enumerate(tqdm(all_pdf_links), start=1):
-        filename = f"report_{idx:03d}.pdf"
-        output_path = os.path.join(RAW_DATA_DIR, filename)
+    if all_pdf_links:
+        print(f"\nTotal unique PDF files found: {len(all_pdf_links)}")
         
-        if os.path.exists(output_path):
-            print(f"Skipping {filename} (already exists)")
-            downloaded_count += 1
-            continue
+        # Download each PDF
+        print("\nDownloading PDF files...")
+        downloaded_count = 0
+        skipped_count = 0
+        failed_count = 0
         
-        if download_pdf(pdf_url, output_path):
-            downloaded_count += 1
-    
-    print(f"\nSuccessfully downloaded {downloaded_count} PDF files to {RAW_DATA_DIR}")
+        for idx, pdf_url in enumerate(tqdm(all_pdf_links), start=1):
+            filename = f"report_{idx:03d}.pdf"
+            output_path = os.path.join(RAW_DATA_DIR, filename)
+            
+            if os.path.exists(output_path):
+                # Check if file is not empty
+                if os.path.getsize(output_path) > 0:
+                    skipped_count += 1
+                    continue
+                else:
+                    # Re-download if file is empty
+                    print(f"\nRe-downloading {filename} (previous file was empty)")
+            
+            if download_pdf(pdf_url, output_path):
+                downloaded_count += 1
+            else:
+                failed_count += 1
+        
+        print(f"\nDownload Summary:")
+        print(f"  - Successfully downloaded: {downloaded_count}")
+        print(f"  - Skipped (already exist): {skipped_count}")
+        print(f"  - Failed: {failed_count}")
+        print(f"  - Total PDF files in {RAW_DATA_DIR}: {len([f for f in os.listdir(RAW_DATA_DIR) if f.endswith('.pdf')])}")
+    else:
+        print("\nNo PDF links found to download.")
+        existing_count = len([f for f in os.listdir(RAW_DATA_DIR) if f.endswith('.pdf')])
+        if existing_count > 0:
+            print(f"However, {existing_count} PDF files already exist in {RAW_DATA_DIR}")
+            print("Will proceed with data extraction from existing files.")
+        else:
+            print("\n" + "!"*70)
+            print("WARNING: No PDFs available for processing!")
+            print("!"*70)
+            print("Please manually download PDF files from the SLTDA website and")
+            print(f"place them in: {RAW_DATA_DIR}/")
+            print("Then re-run this script.")
+            print("!"*70 + "\n")
 
 
 def extract_month_year_from_text(text: str) -> Optional[tuple]:
