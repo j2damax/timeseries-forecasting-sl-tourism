@@ -260,21 +260,43 @@ def generate_test_forecast(model: Prophet, test_df: pd.DataFrame) -> pd.DataFram
         Forecast dataframe with actual values
     """
     logger.info("Generating test forecasts...")
-    
-    # Create future dataframe with test dates and regressors
-    future = test_df[['ds', 'easter_attacks', 'covid_period', 'economic_crisis']].copy()
-    
-    # Forecast
-    forecast = model.predict(future)
-    
-    # Combine with actuals
-    result = pd.DataFrame({
-        'ds': test_df['ds'],
-        'y_true': test_df['y'],
-        'y_pred': forecast['yhat'],
-        'residual': test_df['y'].values - forecast['yhat'].values
-    })
-    
+
+    # Prophet expects the future dataframe to contain all regressors used in training
+    required_cols = ['ds', 'easter_attacks', 'covid_period', 'economic_crisis']
+    missing = [c for c in required_cols if c not in test_df.columns]
+    if missing:
+        raise ValueError(f"Test dataframe missing required regressor columns: {missing}")
+
+    # Prepare future (exactly the test horizon only)
+    future = test_df[required_cols].copy()
+    logger.info(f"Test horizon length: {len(future)}")
+
+    # Run prediction
+    forecast_full = model.predict(future)
+
+    # Align forecast rows strictly by date to avoid any accidental reindexing
+    forecast = forecast_full[['ds', 'yhat']].copy()
+
+    # Sanity checks
+    if len(forecast) != len(test_df):
+        logger.warning(
+            f"Forecast rows ({len(forecast)}) != test rows ({len(test_df)}). Attempting inner merge alignment.")
+        merged = pd.merge(test_df[['ds', 'y']], forecast, on='ds', how='inner')
+        if len(merged) != len(test_df):
+            raise ValueError(
+                f"After alignment merge, forecast rows {len(merged)} still != test rows {len(test_df)}")
+        aligned = merged
+    else:
+        # Direct alignment
+        aligned = test_df[['ds', 'y']].copy()
+        aligned['yhat'] = forecast['yhat'].values
+
+    # Build result dataframe
+    result = aligned.rename(columns={'y': 'y_true', 'yhat': 'y_pred'})
+    result['residual'] = result['y_true'] - result['y_pred']
+
+    # Final check
+    assert len(result) == len(test_df), "Result length must equal test dataframe length"
     return result
 
 

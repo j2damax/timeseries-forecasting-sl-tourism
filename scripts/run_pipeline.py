@@ -23,13 +23,18 @@ import json
 import pandas as pd
 from datetime import datetime
 
+# Ensure logs directory exists BEFORE configuring logging FileHandler
+_project_root = Path(__file__).resolve().parent.parent
+_logs_dir = _project_root / 'logs'
+_logs_dir.mkdir(exist_ok=True)
+
 # Setup logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler('logs/pipeline.log', mode='w')
+        logging.FileHandler(str(_logs_dir / 'pipeline.log'), mode='w')
     ]
 )
 logger = logging.getLogger(__name__)
@@ -62,8 +67,11 @@ def run_script(script_name: str, description: str, skip: bool = False) -> bool:
     logger.info("="*60)
     
     try:
+        script_path = _project_root / 'scripts' / script_name
+        if not script_path.exists():
+            raise FileNotFoundError(f"Script not found: {script_path}")
         result = subprocess.run(
-            [sys.executable, f"scripts/{script_name}"],
+            [sys.executable, str(script_path)],
             check=True,
             capture_output=True,
             text=True
