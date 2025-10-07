@@ -27,20 +27,68 @@ This will:
 
 For more details, see [scripts/README.md](scripts/README.md)
 
+## Feature Engineering
+
+The project includes a comprehensive feature engineering pipeline optimized for tourism forecasting:
+
+- **Parity Layer**: Shared core features (year, month, quarter) for all models
+- **Intervention Features**: Binary flags for structural shocks (Easter attacks 2019, COVID-19, Economic crisis)
+- **Cyclical Encoding**: Sine/cosine transformations for neural networks
+- **Lag Features**: 1, 3, 6, 12 month lags for temporal dependencies
+- **Recovery Index**: Smooth continuous measure of post-COVID recovery
+
+### Generated Datasets
+
+Four dataset variants optimized for different model types:
+
+1. `monthly_tourist_arrivals_features_full.csv` (91×20) - Complete feature set
+2. `monthly_tourist_arrivals_features_prophet.csv` (91×9) - Prophet-optimized
+3. `monthly_tourist_arrivals_features_ml.csv` (91×15) - ML/DL with NaN
+4. `monthly_tourist_arrivals_features_ml_clean.csv` (79×15) - ML/DL without NaN
+
+### Running Feature Engineering
+
+```bash
+# Run the feature engineering notebook
+jupyter notebook notebooks/02_Feature_Engineering.ipynb
+
+# Or use the reusable pipeline in your code
+python -c "from scripts.feature_engineering import create_ml_features; ..."
+
+# Validate the implementation
+python test_feature_engineering.py
+```
+
+For comprehensive documentation:
+- **[FEATURE_ENGINEERING.md](FEATURE_ENGINEERING.md)** - Complete feature documentation
+- **[USAGE_EXAMPLES.md](USAGE_EXAMPLES.md)** - Model-specific usage examples
+- **[FEATURE_ENGINEERING_SUMMARY.md](FEATURE_ENGINEERING_SUMMARY.md)** - Implementation summary
+
 ## Project Structure
 
 ```
 .
 ├── data/
 │   ├── raw/              # Downloaded PDF files (not tracked in git)
-│   └── processed/        # Cleaned CSV datasets (not tracked in git)
+│   └── processed/        # Cleaned CSV datasets and engineered features
 ├── scripts/
-│   ├── ingest_tourism_data.py  # Data ingestion pipeline
-│   ├── data_loader.py          # Data loading utilities
-│   ├── preprocessing.py        # Data preprocessing functions
-│   └── evaluation.py           # Model evaluation utilities
-├── notebooks/            # Jupyter notebooks for analysis
-└── requirements.txt      # Python dependencies
+│   ├── ingest_tourism_data.py   # Data ingestion pipeline
+│   ├── data_loader.py           # Data loading utilities
+│   ├── preprocessing.py         # Data preprocessing and feature functions
+│   ├── feature_engineering.py   # Reusable feature engineering pipeline
+│   └── evaluation.py            # Model evaluation utilities
+├── notebooks/
+│   ├── 01_Data_Ingestion_and_EDA.ipynb        # Data exploration
+│   ├── 02_Feature_Engineering.ipynb           # Feature creation
+│   ├── 03_Model_Development_Prophet.ipynb     # Prophet model
+│   ├── 04_Model_Development_LSTM.ipynb        # LSTM model
+│   ├── 05_Model_Development_Chronos.ipynb     # Chronos model
+│   ├── 06_Model_Development_Novel.ipynb       # N-HiTS model
+│   └── 07_Model_Comparison_and_Analysis.ipynb # Model comparison
+├── test_feature_engineering.py  # Feature engineering validation tests
+├── FEATURE_ENGINEERING.md       # Feature documentation
+├── USAGE_EXAMPLES.md            # Model-specific examples
+└── requirements.txt             # Python dependencies
 
 ```
 
