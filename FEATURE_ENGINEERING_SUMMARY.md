@@ -152,6 +152,11 @@ All datasets are prepared and validated. Models can now be trained using the app
 ## 📖 Quick Reference
 
 ```bash
+# Generate features using CLI
+cd scripts
+python feature_engineering.py
+python feature_engineering.py --type ml --drop-na
+
 # Test feature engineering
 python test_feature_engineering.py
 

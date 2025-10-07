@@ -203,8 +203,8 @@ def test_output_files():
     files = {
         'data/processed/monthly_tourist_arrivals_features_full.csv': (91, 20),
         'data/processed/monthly_tourist_arrivals_features_prophet.csv': (91, 9),
-        'data/processed/monthly_tourist_arrivals_features_ml.csv': (91, 15),
-        'data/processed/monthly_tourist_arrivals_features_ml_clean.csv': (79, 15),
+        'data/processed/monthly_tourist_arrivals_features_ml.csv': (91, 16),
+        'data/processed/monthly_tourist_arrivals_features_ml_clean.csv': (79, 16),
     }
     
     for filepath, expected_shape in files.items():
@@ -278,8 +278,8 @@ def run_all_tests():
         print("\nGenerated files:")
         print("  - monthly_tourist_arrivals_features_full.csv (91x20)")
         print("  - monthly_tourist_arrivals_features_prophet.csv (91x9)")
-        print("  - monthly_tourist_arrivals_features_ml.csv (91x15)")
-        print("  - monthly_tourist_arrivals_features_ml_clean.csv (79x15)")
+        print("  - monthly_tourist_arrivals_features_ml.csv (91x16)")
+        print("  - monthly_tourist_arrivals_features_ml_clean.csv (79x16)")
         
         return True
         

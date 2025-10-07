@@ -43,17 +43,22 @@ Four dataset variants optimized for different model types:
 
 1. `monthly_tourist_arrivals_features_full.csv` (91×20) - Complete feature set
 2. `monthly_tourist_arrivals_features_prophet.csv` (91×9) - Prophet-optimized
-3. `monthly_tourist_arrivals_features_ml.csv` (91×15) - ML/DL with NaN
-4. `monthly_tourist_arrivals_features_ml_clean.csv` (79×15) - ML/DL without NaN
+3. `monthly_tourist_arrivals_features_ml.csv` (91×16) - ML/DL with NaN
+4. `monthly_tourist_arrivals_features_ml_clean.csv` (79×16) - ML/DL without NaN
 
 ### Running Feature Engineering
 
 ```bash
-# Run the feature engineering notebook
-jupyter notebook notebooks/02_Feature_Engineering.ipynb
+# Generate all feature sets using the CLI
+cd scripts
+python feature_engineering.py
 
-# Or use the reusable pipeline in your code
-python -c "from scripts.feature_engineering import create_ml_features; ..."
+# Generate specific feature set
+python feature_engineering.py --type ml --drop-na
+python feature_engineering.py --type prophet
+
+# Or run the feature engineering notebook
+jupyter notebook notebooks/02_Feature_Engineering.ipynb
 
 # Validate the implementation
 python test_feature_engineering.py
