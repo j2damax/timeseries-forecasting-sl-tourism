@@ -29,7 +29,7 @@ For more details, see [scripts/README.md](scripts/README.md)
 
 ## Feature Engineering
 
-The project includes a comprehensive feature engineering pipeline optimized for tourism forecasting:
+The project uses a **minimal feature engineering approach** optimized for small datasets (91 observations):
 
 - **Parity Layer**: Shared core features (year, month, quarter) for all models
 - **Intervention Features**: Binary flags for structural shocks (Easter attacks 2019, COVID-19, Economic crisis)
@@ -65,6 +65,7 @@ python test_feature_engineering.py
 ```
 
 For comprehensive documentation:
+- **[MINIMAL_FEATURE_ENGINEERING.md](MINIMAL_FEATURE_ENGINEERING.md)** - Overview of minimal approach
 - **[FEATURE_ENGINEERING.md](FEATURE_ENGINEERING.md)** - Complete feature documentation
 - **[USAGE_EXAMPLES.md](USAGE_EXAMPLES.md)** - Model-specific usage examples
 - **[FEATURE_ENGINEERING_SUMMARY.md](FEATURE_ENGINEERING_SUMMARY.md)** - Implementation summary
