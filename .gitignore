@@ -209,3 +209,24 @@ __marimo__/
 # Data files - Keep PDFs local only, track CSV with Git LFS  
 data/raw/*.pdf
 # data/processed/*.csv
+
+# Model artifacts and outputs
+models/**/*.pkl
+models/**/*.h5
+models/**/*.pt
+models/**/*.pth
+artifacts/**/*.pkl
+artifacts/**/*.joblib
+forecasts/**/*.csv
+forecasts/**/*.png
+reports/**/*.json
+reports/**/*.csv
+reports/**/*.md
+logs/**/*.log
+
+# Keep directory structure
+!models/*/.gitkeep
+!artifacts/.gitkeep
+!forecasts/.gitkeep
+!reports/.gitkeep
+!logs/.gitkeep
