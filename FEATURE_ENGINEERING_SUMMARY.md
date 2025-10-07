@@ -7,7 +7,7 @@ This feature engineering implementation follows the constraints and guidelines f
 ### 1. Design Principles (All Satisfied)
 
 - ✅ **Parity Layer**: Shared core features (year, month, quarter) + intervention flags
-- ✅ **Minimal Features**: Small dataset (91 obs) → avoided overfitting with ~15-20 features max
+- ✅ **Minimal Features**: Small dataset (91 obs) → avoided overfitting with ~16-20 features max
 - ✅ **No Leakage**: Rolling stats use only past data, interventions are deterministic
 - ✅ **Known at Forecast Time**: All exogenous features are deterministically definable for future
 - ✅ **Interpretable**: Every feature has clear business meaning
@@ -41,8 +41,8 @@ This feature engineering implementation follows the constraints and guidelines f
 |---------|------|------|---------|-----|
 | `features_full.csv` | 91 | 20 | Complete set for exploration | 48 |
 | `features_prophet.csv` | 91 | 9 | Prophet-optimized | 0 |
-| `features_ml.csv` | 91 | 15 | ML/DL with NaN | 22 |
-| `features_ml_clean.csv` | 79 | 15 | ML/DL without NaN | 0 |
+| `features_ml.csv` | 91 | 16 | ML/DL with NaN | 22 |
+| `features_ml_clean.csv` | 79 | 16 | ML/DL without NaN | 0 |
 
 ### 4. Model-Specific Recommendations
 
@@ -152,6 +152,11 @@ All datasets are prepared and validated. Models can now be trained using the app
 ## 📖 Quick Reference
 
 ```bash
+# Generate features using CLI
+cd scripts
+python feature_engineering.py
+python feature_engineering.py --type ml --drop-na
+
 # Test feature engineering
 python test_feature_engineering.py
 

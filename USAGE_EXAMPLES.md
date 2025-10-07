@@ -2,7 +2,27 @@
 
 This document provides practical examples of how to use the feature engineering module for different model types.
 
-## Setup
+## Quick Start: Command Line Interface
+
+The easiest way to generate features is using the CLI:
+
+```bash
+cd scripts
+
+# Generate all feature sets (recommended)
+python feature_engineering.py
+
+# Generate specific feature set
+python feature_engineering.py --type ml --drop-na
+python feature_engineering.py --type prophet
+
+# Custom input/output paths
+python feature_engineering.py --input my_data.csv --output my_features.csv
+```
+
+## Using the Module in Python
+
+### Setup
 
 ```python
 import pandas as pd

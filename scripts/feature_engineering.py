@@ -273,15 +273,159 @@ def get_feature_names(feature_type: str = 'all') -> List[str]:
 
 
 if __name__ == '__main__':
-    # Example usage
-    print("Feature Engineering Module for Sri Lanka Tourism Forecasting")
-    print("\nAvailable functions:")
-    print("  - create_all_features(): Create all features")
-    print("  - create_prophet_features(): Create features for Prophet model")
-    print("  - create_ml_features(): Create features for ML/DL models")
-    print("  - get_feature_names(): Get feature name lists")
+    import argparse
+    import sys
     
-    print("\nExample usage:")
-    print("  from feature_engineering import create_ml_features")
-    print("  df = pd.read_csv('data/processed/monthly_tourist_arrivals_filtered.csv')")
-    print("  df_features = create_ml_features(df, include_lags=True, drop_na=True)")
+    parser = argparse.ArgumentParser(
+        description='Feature Engineering Pipeline for Sri Lanka Tourism Forecasting',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog='''
+Examples:
+  # Generate all feature sets (default behavior)
+  python feature_engineering.py
+  
+  # Generate specific feature set
+  python feature_engineering.py --type ml
+  python feature_engineering.py --type prophet
+  python feature_engineering.py --type all
+  
+  # Use custom input/output paths
+  python feature_engineering.py --input data/my_data.csv --output data/my_features.csv
+  
+  # ML features with custom options
+  python feature_engineering.py --type ml --no-lags --with-rolling --drop-na
+        '''
+    )
+    
+    parser.add_argument(
+        '--input',
+        type=str,
+        default='../data/processed/monthly_tourist_arrivals_filtered.csv',
+        help='Input CSV file path (default: ../data/processed/monthly_tourist_arrivals_filtered.csv)'
+    )
+    
+    parser.add_argument(
+        '--output-dir',
+        type=str,
+        default='../data/processed',
+        help='Output directory for generated feature files (default: ../data/processed)'
+    )
+    
+    parser.add_argument(
+        '--type',
+        type=str,
+        choices=['all', 'prophet', 'ml', 'full'],
+        default='full',
+        help='Type of features to generate: all=all types, prophet=Prophet model, ml=ML/DL models, full=complete feature set (default: full)'
+    )
+    
+    parser.add_argument(
+        '--output',
+        type=str,
+        help='Custom output file path (overrides --output-dir and default naming)'
+    )
+    
+    # ML-specific options
+    parser.add_argument(
+        '--no-lags',
+        action='store_true',
+        help='Exclude lag features (ML type only)'
+    )
+    
+    parser.add_argument(
+        '--with-rolling',
+        action='store_true',
+        help='Include rolling window features (ML type only)'
+    )
+    
+    parser.add_argument(
+        '--drop-na',
+        action='store_true',
+        help='Drop rows with NaN values (ML type only)'
+    )
+    
+    args = parser.parse_args()
+    
+    # Load input data
+    try:
+        print(f"Loading data from: {args.input}")
+        df = pd.read_csv(args.input)
+        print(f"✓ Loaded {len(df)} rows")
+    except Exception as e:
+        print(f"Error loading data: {e}", file=sys.stderr)
+        sys.exit(1)
+    
+    # Generate features based on type
+    from pathlib import Path
+    output_dir = Path(args.output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    if args.type == 'full' or args.type == 'all':
+        # Generate all feature sets
+        print("\n" + "="*60)
+        print("Generating all feature sets...")
+        print("="*60)
+        
+        # 1. Full features
+        df_full = create_all_features(df)
+        output_file = output_dir / 'monthly_tourist_arrivals_features_full.csv'
+        df_full.to_csv(output_file, index=False)
+        print(f"✓ Full features: {output_file} ({df_full.shape})")
+        
+        # 2. Prophet features
+        df_prophet = create_prophet_features(df)
+        # Save without ds/y columns for storage, keep minimal
+        df_prophet_save = df_prophet[['Date', 'Arrivals', 'year', 'month', 'quarter',
+                                      'easter_attacks', 'covid_period', 'economic_crisis',
+                                      'recovery_index']]
+        output_file = output_dir / 'monthly_tourist_arrivals_features_prophet.csv'
+        df_prophet_save.to_csv(output_file, index=False)
+        print(f"✓ Prophet features: {output_file} ({df_prophet_save.shape})")
+        
+        # 3. ML features (with NaN)
+        df_ml = create_ml_features(df, include_lags=True, drop_na=False)
+        output_file = output_dir / 'monthly_tourist_arrivals_features_ml.csv'
+        df_ml.to_csv(output_file, index=False)
+        print(f"✓ ML features (with NaN): {output_file} ({df_ml.shape})")
+        
+        # 4. ML features (clean)
+        df_ml_clean = create_ml_features(df, include_lags=True, drop_na=True)
+        output_file = output_dir / 'monthly_tourist_arrivals_features_ml_clean.csv'
+        df_ml_clean.to_csv(output_file, index=False)
+        print(f"✓ ML features (clean): {output_file} ({df_ml_clean.shape})")
+        
+        print("\n" + "="*60)
+        print("Feature generation complete!")
+        print("="*60)
+        
+    elif args.type == 'prophet':
+        print("\nGenerating Prophet features...")
+        df_features = create_prophet_features(df)
+        
+        if args.output:
+            output_file = Path(args.output)
+        else:
+            output_file = output_dir / 'features_prophet.csv'
+        
+        df_features.to_csv(output_file, index=False)
+        print(f"✓ Saved: {output_file} ({df_features.shape})")
+        
+    elif args.type == 'ml':
+        print("\nGenerating ML/DL features...")
+        df_features = create_ml_features(
+            df,
+            include_lags=not args.no_lags,
+            include_rolling=args.with_rolling,
+            drop_na=args.drop_na
+        )
+        
+        if args.output:
+            output_file = Path(args.output)
+        else:
+            suffix = '_clean' if args.drop_na else ''
+            output_file = output_dir / f'features_ml{suffix}.csv'
+        
+        df_features.to_csv(output_file, index=False)
+        print(f"✓ Saved: {output_file} ({df_features.shape})")
+    
+    print("\nFeature Engineering Complete ✓")

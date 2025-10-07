@@ -114,7 +114,7 @@ The feature engineering process creates 4 dataset variants:
 
 ### 3. ML Features with NaN (`monthly_tourist_arrivals_features_ml.csv`)
 
-- **Shape**: 91 rows × 15 columns
+- **Shape**: 91 rows × 16 columns
 - **Purpose**: ML/DL models that can handle missing values
 - **Contains**: Core + cyclical + interventions + lags (no rolling)
 - **Missing Values**: 22 (from lag features)
@@ -122,7 +122,7 @@ The feature engineering process creates 4 dataset variants:
 
 ### 4. ML Features Clean (`monthly_tourist_arrivals_features_ml_clean.csv`)
 
-- **Shape**: 79 rows × 15 columns
+- **Shape**: 79 rows × 16 columns
 - **Purpose**: ML/DL models requiring complete data
 - **Contains**: Same as ML features, but with first 12 rows dropped
 - **Missing Values**: 0
@@ -132,6 +132,26 @@ The feature engineering process creates 4 dataset variants:
 **Columns**: Date, Arrivals, year, month, quarter, month_sin, month_cos, easter_attacks, covid_period, economic_crisis, months_since_covid, recovery_index, Arrivals_lag_1, Arrivals_lag_3, Arrivals_lag_6, Arrivals_lag_12
 
 ## Usage
+
+### Command Line Interface (CLI)
+
+Generate feature sets directly from the command line:
+
+```bash
+# Generate all feature sets (default)
+cd scripts
+python feature_engineering.py
+
+# Generate specific feature set
+python feature_engineering.py --type ml --drop-na
+python feature_engineering.py --type prophet
+
+# Custom input/output
+python feature_engineering.py --input my_data.csv --output my_features.csv
+
+# ML features with options
+python feature_engineering.py --type ml --no-lags --with-rolling
+```
 
 ### In Notebooks
 
