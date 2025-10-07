@@ -219,8 +219,10 @@ def create_cyclical_features(df: pd.DataFrame, date_column: str) -> pd.DataFrame
 
 def create_intervention_features(df: pd.DataFrame, date_column: str) -> pd.DataFrame:
     """
-    Create intervention/event features for known structural shocks.
+    Create minimal intervention/event features for known structural shocks.
     All features are deterministically known at forecast time.
+    
+    Simplified for Prophet, LSTM, and Chronos models only.
     
     Parameters
     ----------
@@ -240,24 +242,30 @@ def create_intervention_features(df: pd.DataFrame, date_column: str) -> pd.DataF
     if not pd.api.types.is_datetime64_any_dtype(df_copy[date_column]):
         df_copy[date_column] = pd.to_datetime(df_copy[date_column])
     
-    # Easter Sunday attacks (April 2019)
-    df_copy['easter_attacks'] = ((df_copy[date_column].dt.year == 2019) & 
-                                  (df_copy[date_column].dt.month == 4)).astype(int)
+    # Easter Sunday attacks impact period (April 2019 - September 2019)
+    df_copy['easter_impact'] = ((df_copy[date_column] >= '2019-04-01') & 
+                                 (df_copy[date_column] <= '2019-09-01')).astype(int)
     
     # COVID-19 pandemic period (March 2020 - December 2021)
-    df_copy['covid_period'] = ((df_copy[date_column] >= '2020-03-01') & 
-                                (df_copy[date_column] <= '2021-12-31')).astype(int)
+    df_copy['covid'] = ((df_copy[date_column] >= '2020-03-01') & 
+                         (df_copy[date_column] <= '2021-12-01')).astype(int)
     
-    # Economic crisis (2022 onwards)
-    df_copy['economic_crisis'] = (df_copy[date_column] >= '2022-01-01').astype(int)
+    # Economic crisis period (April 2022 - September 2022)
+    df_copy['econ_crisis'] = ((df_copy[date_column] >= '2022-04-01') & 
+                               (df_copy[date_column] <= '2022-09-01')).astype(int)
+    
+    # Recovery period (November 2022 onwards)
+    df_copy['recovery'] = (df_copy[date_column] >= '2022-11-01').astype(int)
     
     return df_copy
 
 
 def create_recovery_index(df: pd.DataFrame, date_column: str) -> pd.DataFrame:
     """
-    Create smooth recovery index for post-shock periods.
-    This provides a continuous measure of time since major shocks.
+    DEPRECATED: Use binary 'recovery' flag from create_intervention_features instead.
+    
+    This function is kept for backwards compatibility but is no longer used
+    in the simplified feature engineering pipeline.
     
     Parameters
     ----------
@@ -269,19 +277,7 @@ def create_recovery_index(df: pd.DataFrame, date_column: str) -> pd.DataFrame:
     Returns
     -------
     pd.DataFrame
-        DataFrame with recovery index
+        DataFrame unchanged (deprecated function)
     """
-    df_copy = df.copy()
-    
-    # Ensure date column is datetime
-    if not pd.api.types.is_datetime64_any_dtype(df_copy[date_column]):
-        df_copy[date_column] = pd.to_datetime(df_copy[date_column])
-    
-    # Recovery index: months since COVID-19 started (for post-COVID recovery tracking)
-    covid_start = pd.to_datetime('2020-03-01')
-    df_copy['months_since_covid'] = ((df_copy[date_column] - covid_start).dt.days / 30.44).clip(lower=0)
-    
-    # Normalize to 0-1 range (cap at 60 months for smoother scaling)
-    df_copy['recovery_index'] = (df_copy['months_since_covid'] / 60).clip(upper=1.0)
-    
-    return df_copy
+    # Return unchanged dataframe - recovery is now a binary flag
+    return df.copy()
