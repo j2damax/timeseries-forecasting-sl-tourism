@@ -66,11 +66,7 @@ def create_time_features(df: pd.DataFrame, date_column: str) -> pd.DataFrame:
     # Extract time features
     df_copy['year'] = df_copy[date_column].dt.year
     df_copy['month'] = df_copy[date_column].dt.month
-    df_copy['day'] = df_copy[date_column].dt.day
-    df_copy['day_of_week'] = df_copy[date_column].dt.dayofweek
-    df_copy['day_of_year'] = df_copy[date_column].dt.dayofyear
     df_copy['quarter'] = df_copy[date_column].dt.quarter
-    df_copy['is_weekend'] = df_copy['day_of_week'].isin([5, 6]).astype(int)
     
     return df_copy
 
@@ -101,9 +97,10 @@ def create_lag_features(df: pd.DataFrame, column: str, lags: list) -> pd.DataFra
     return df_copy
 
 
-def create_rolling_features(df: pd.DataFrame, column: str, windows: list) -> pd.DataFrame:
+def create_rolling_features(df: pd.DataFrame, column: str, windows: list, min_periods: Optional[int] = None) -> pd.DataFrame:
     """
     Create rolling window statistics for a given column.
+    Uses only past data to avoid leakage.
     
     Parameters
     ----------
@@ -113,6 +110,8 @@ def create_rolling_features(df: pd.DataFrame, column: str, windows: list) -> pd.
         Column name to create rolling features for
     windows : list
         List of window sizes
+    min_periods : Optional[int]
+        Minimum number of observations required (defaults to window size)
         
     Returns
     -------
@@ -122,10 +121,13 @@ def create_rolling_features(df: pd.DataFrame, column: str, windows: list) -> pd.
     df_copy = df.copy()
     
     for window in windows:
-        df_copy[f'{column}_rolling_mean_{window}'] = df_copy[column].rolling(window=window).mean()
-        df_copy[f'{column}_rolling_std_{window}'] = df_copy[column].rolling(window=window).std()
-        df_copy[f'{column}_rolling_min_{window}'] = df_copy[column].rolling(window=window).min()
-        df_copy[f'{column}_rolling_max_{window}'] = df_copy[column].rolling(window=window).max()
+        # Set min_periods to window size to avoid partial windows at the start
+        periods = min_periods if min_periods is not None else window
+        
+        df_copy[f'{column}_rolling_mean_{window}'] = df_copy[column].rolling(
+            window=window, min_periods=periods).mean()
+        df_copy[f'{column}_rolling_std_{window}'] = df_copy[column].rolling(
+            window=window, min_periods=periods).std()
     
     return df_copy
 
@@ -183,3 +185,103 @@ def train_test_split_timeseries(df: pd.DataFrame, test_size: float = 0.2) -> Tup
     test_df = df.iloc[split_index:].copy()
     
     return train_df, test_df
+
+
+def create_cyclical_features(df: pd.DataFrame, date_column: str) -> pd.DataFrame:
+    """
+    Create cyclical encoding of month for neural networks.
+    Uses sine and cosine transformations to preserve cyclical nature.
+    
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Input DataFrame
+    date_column : str
+        Name of the date column
+        
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with cyclical month features
+    """
+    df_copy = df.copy()
+    
+    # Ensure date column is datetime
+    if not pd.api.types.is_datetime64_any_dtype(df_copy[date_column]):
+        df_copy[date_column] = pd.to_datetime(df_copy[date_column])
+    
+    # Cyclical encoding for month (12 months)
+    df_copy['month_sin'] = np.sin(2 * np.pi * df_copy[date_column].dt.month / 12)
+    df_copy['month_cos'] = np.cos(2 * np.pi * df_copy[date_column].dt.month / 12)
+    
+    return df_copy
+
+
+def create_intervention_features(df: pd.DataFrame, date_column: str) -> pd.DataFrame:
+    """
+    Create intervention/event features for known structural shocks.
+    All features are deterministically known at forecast time.
+    
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Input DataFrame
+    date_column : str
+        Name of the date column
+        
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with intervention features
+    """
+    df_copy = df.copy()
+    
+    # Ensure date column is datetime
+    if not pd.api.types.is_datetime64_any_dtype(df_copy[date_column]):
+        df_copy[date_column] = pd.to_datetime(df_copy[date_column])
+    
+    # Easter Sunday attacks (April 2019)
+    df_copy['easter_attacks'] = ((df_copy[date_column].dt.year == 2019) & 
+                                  (df_copy[date_column].dt.month == 4)).astype(int)
+    
+    # COVID-19 pandemic period (March 2020 - December 2021)
+    df_copy['covid_period'] = ((df_copy[date_column] >= '2020-03-01') & 
+                                (df_copy[date_column] <= '2021-12-31')).astype(int)
+    
+    # Economic crisis (2022 onwards)
+    df_copy['economic_crisis'] = (df_copy[date_column] >= '2022-01-01').astype(int)
+    
+    return df_copy
+
+
+def create_recovery_index(df: pd.DataFrame, date_column: str) -> pd.DataFrame:
+    """
+    Create smooth recovery index for post-shock periods.
+    This provides a continuous measure of time since major shocks.
+    
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Input DataFrame
+    date_column : str
+        Name of the date column
+        
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with recovery index
+    """
+    df_copy = df.copy()
+    
+    # Ensure date column is datetime
+    if not pd.api.types.is_datetime64_any_dtype(df_copy[date_column]):
+        df_copy[date_column] = pd.to_datetime(df_copy[date_column])
+    
+    # Recovery index: months since COVID-19 started (for post-COVID recovery tracking)
+    covid_start = pd.to_datetime('2020-03-01')
+    df_copy['months_since_covid'] = ((df_copy[date_column] - covid_start).dt.days / 30.44).clip(lower=0)
+    
+    # Normalize to 0-1 range (cap at 60 months for smoother scaling)
+    df_copy['recovery_index'] = (df_copy['months_since_covid'] / 60).clip(upper=1.0)
+    
+    return df_copy
