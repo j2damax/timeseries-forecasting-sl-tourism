@@ -7,9 +7,13 @@ This script orchestrates the complete pipeline:
 3. Train Prophet model
 4. Train LSTM model  
 5. Run Chronos inference
-6. Compare models
-7. Run prediction tests
-8. Generate summary report
+6. Run baseline models (naive & seasonal naive)
+7. Prophet residual diagnostics & interval coverage
+8. Diebold-Mariano test (Prophet vs Seasonal Naive)
+9. Compare models
+10. Generate summary report
+11. Generate academic report (extended sections)
+12. Run prediction tests
 
 Implements Section 10 of the problem statement.
 """
@@ -228,8 +232,15 @@ def generate_summary_report(base_dir: Path, comparison_df: pd.DataFrame):
         
         f.write("## Model Comparison\n\n")
         if not comparison_df.empty:
-            f.write(comparison_df.to_markdown(index=False))
-            f.write("\n\n")
+            # Try markdown export; fallback gracefully if 'tabulate' not installed
+            try:
+                f.write(comparison_df.to_markdown(index=False))
+                f.write("\n\n")
+            except ImportError:
+                logger.warning("'tabulate' not installed – falling back to plain text table. Install with: pip install tabulate")
+                f.write("````\n")
+                f.write(comparison_df.to_string(index=False))
+                f.write("\n````\n\n")
             
             # Best model
             best = comparison_df.iloc[0]
@@ -351,13 +362,25 @@ def main():
         logger.warning("Chronos inference failed or was skipped")
         # Don't fail pipeline
     
-    # Step 5: Model comparison
+    # Step 5: Baseline models
+    run_script('baselines.py', 'Baseline Models (Naive & Seasonal Naive)')
+
+    # Step 6: Prophet diagnostics
+    run_script('prophet_diagnostics.py', 'Prophet Residual Diagnostics')
+
+    # Step 7: Diebold-Mariano test
+    run_script('dm_test.py', 'Diebold-Mariano Test (Prophet vs Seasonal Naive)')
+
+    # Step 8: Model comparison
     comparison_df = generate_model_comparison(base_dir)
     
-    # Step 6: Generate summary
+    # Step 9: Generate summary
     generate_summary_report(base_dir, comparison_df)
+
+    # Step 10: Academic report (if script exists)
+    run_script('generate_academic_report.py', 'Generate Academic Report')
     
-    # Step 7: Run prediction tests
+    # Step 11: Run prediction tests
     logger.info("\n" + "="*60)
     logger.info("Running Prediction Tests")
     logger.info("="*60)
